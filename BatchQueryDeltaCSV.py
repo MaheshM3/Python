@@ -22,15 +22,15 @@ def extract_table_name(query):
         return match.group(1)
     return None
 
-# Function to extract filter conditions from the SQL query (e.g., partition info like date, region)
+# Function to extract partition filters from the SQL query (e.g., business_date, business_group_location)
 def extract_filters(query):
-    date_match = re.search(r"date\s*=\s*'([\d\-]+)'", query, re.IGNORECASE)
-    region_match = re.search(r"region\s*=\s*'(\w+)'", query, re.IGNORECASE)
+    business_date_match = re.search(r"business_date\s*=\s*'([\d\-]+)'", query, re.IGNORECASE)
+    business_group_location_match = re.search(r"business_group_location\s*=\s*'(\w+)'", query, re.IGNORECASE)
 
-    date = date_match.group(1) if date_match else None
-    region = region_match.group(1) if region_match else None
+    business_date = business_date_match.group(1) if business_date_match else None
+    business_group_location = business_group_location_match.group(1) if business_group_location_match else None
 
-    return {"date": date, "region": region}
+    return {"business_date": business_date, "business_group_location": business_group_location}
 
 # Function to load data for a specific table and run a query
 def run_query(query_dict):
@@ -38,19 +38,20 @@ def run_query(query_dict):
         query = query_dict["query"]
 
         # Extract table name from the query
-        tablename = query_dict["tablename"]
+        tablename = extract_table_name(query)
         if not tablename:
             raise ValueError(f"Table name not found in query: {query}")
 
-        # Extract partition filters (e.g., date, region)
-        date = query_dict["date"]
-        region = query_dict["region"]
+        # Extract partition filters (e.g., business_date, business_group_location)
+        filters = extract_filters(query)
+        business_date = filters["business_date"]
+        business_group_location = filters["business_group_location"]
 
-        # Construct the path dynamically based on the table, date, and region
-        if date and region:
-            table_path = f"{base_path}/{tablename}/date={date}/region={region}/"
-        elif date:
-            table_path = f"{base_path}/{tablename}/date={date}/"
+        # Construct the path dynamically based on the table, business_date, and business_group_location
+        if business_date and business_group_location:
+            table_path = f"{base_path}/{tablename}/business_date={business_date}/business_group_location={business_group_location}/"
+        elif business_date:
+            table_path = f"{base_path}/{tablename}/business_date={business_date}/"
         else:
             table_path = f"{base_path}/{tablename}/"
 
