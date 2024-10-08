@@ -13,22 +13,16 @@ queries_df = spark.read.format("csv").option("header", "true").load(csv_file_pat
 # Path to data in ADLS Gen2
 base_path = "abfss://<container>@<storage-account>.dfs.core.windows.net/<path-to-data>"
 
-# Function to extract all table names from the SQL query, including CTEs
+# Function to extract all table names from the SQL query (handling implicit and explicit joins)
 def extract_table_names(query):
-    # Regex to capture all tables from FROM and JOIN clauses
-    table_pattern = re.compile(r'FROM\s+([\w]+)|JOIN\s+([\w]+)', re.IGNORECASE)
+    # Regex to capture tables in both explicit and implicit joins
+    table_pattern = re.compile(r'FROM\s+([\w]+)\s*(?:,\s*([\w]+))?', re.IGNORECASE)
     
-    # Regex to capture tables in CTEs, which are typically in the form (WITH cte AS (SELECT * FROM table1 ...))
-    cte_pattern = re.compile(r'FROM\s+([\w]+)', re.IGNORECASE)
-    
-    # Find tables in main query
-    main_query_tables = table_pattern.findall(query)
-    
-    # Find tables in CTEs
-    cte_tables = cte_pattern.findall(query)
-    
-    # Combine and extract unique table names
-    tables = [match[0] or match[1] for match in main_query_tables] + cte_tables
+    # Find tables in the query
+    tables = []
+    for match in table_pattern.findall(query):
+        tables += [t for t in match if t]  # Collect non-empty matches
+
     return list(set(tables))  # Return unique table names
 
 # Function to extract partition filters from the SQL query (e.g., business_date, business_group_location)
@@ -68,7 +62,7 @@ def load_table(tablename, filters):
 # Function to execute a query and return the result count
 def run_query(query, query_id, query_column):
     try:
-        # Extract all table names from the query, including those in CTEs
+        # Extract all table names from the query, including implicit and explicit joins
         tablenames = extract_table_names(query)
         if not tablenames:
             raise ValueError(f"No table names found in query: {query}")
