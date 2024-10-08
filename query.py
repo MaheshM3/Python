@@ -1,31 +1,40 @@
+import sqlparse
 from pyspark.sql import SparkSession
 import re
 
 # Initialize Spark session
 spark = SparkSession.builder.appName("BatchQueries").getOrCreate()
 
-# Path to the CSV file containing the queries (in DBFS or ADLS)
-csv_file_path = "/dbfs/mnt/<mount-point>/queries.csv"  # Change to your path
-
-# Read the CSV file into a DataFrame
-queries_df = spark.read.format("csv").option("header", "true").load(csv_file_path)
-
 # Path to data in ADLS Gen2
 base_path = "abfss://<container>@<storage-account>.dfs.core.windows.net/<path-to-data>"
 
-# Function to extract all table names from the SQL query (handling implicit and explicit joins)
+# Function to extract table names from SQL, including nested queries
 def extract_table_names(query):
-    # Regex to capture tables in both explicit and implicit joins
-    table_pattern = re.compile(r'FROM\s+([\w]+)\s*(?:,\s*([\w]+))?', re.IGNORECASE)
-    
-    # Find tables in the query
-    tables = []
-    for match in table_pattern.findall(query):
-        tables += [t for t in match if t]  # Collect non-empty matches
+    parsed = sqlparse.parse(query)
+    table_names = set()
 
-    return list(set(tables))  # Return unique table names
+    # Recursive function to walk through parsed SQL tokens
+    def extract_tables(tokens):
+        from_seen = False
+        for token in tokens:
+            # If token is a 'FROM', 'JOIN', or ',', expect a table name to follow
+            if token.is_keyword and token.value.upper() in ("FROM", "JOIN", ","):
+                from_seen = True
+            elif from_seen and token.ttype is None:  # Expecting table name
+                if isinstance(token, sqlparse.sql.Identifier):
+                    table_names.add(token.get_real_name())
+                from_seen = False
+            elif isinstance(token, sqlparse.sql.IdentifierList):
+                extract_tables(token)  # Recurse through identifier list
+            elif isinstance(token, sqlparse.sql.Parenthesis):
+                extract_tables(token.tokens)  # Handle nested queries or subqueries
 
-# Function to extract partition filters from the SQL query (e.g., business_date, business_group_location)
+    for statement in parsed:
+        extract_tables(statement.tokens)
+
+    return list(table_names)
+
+# Function to extract partition filters from the SQL query
 def extract_filters(query):
     business_date_match = re.search(r"business_date\s*=\s*'([\d\-]+)'", query, re.IGNORECASE)
     business_group_location_match = re.search(r"business_group_location\s*=\s*'(\w+)'", query, re.IGNORECASE)
@@ -62,7 +71,7 @@ def load_table(tablename, filters):
 # Function to execute a query and return the result count
 def run_query(query, query_id, query_column):
     try:
-        # Extract all table names from the query, including implicit and explicit joins
+        # Extract all table names from the query, including nested queries
         tablenames = extract_table_names(query)
         if not tablenames:
             raise ValueError(f"No table names found in query: {query}")
@@ -87,43 +96,29 @@ def run_query(query, query_id, query_column):
         print(f"Error processing {query_column} for ID {query_id}: {str(e)}")
         return None
 
-# Initialize an empty list to hold the results
-results = []
+# Example query from the user
+query = """
+SELECT COUNT(*)
+FROM t1 
+JOIN (
+    SELECT * 
+    FROM (
+        SELECT * 
+        FROM t2, t3
+    )
+);
+"""
 
-# Run each query sequentially
-for query_row in queries_df.collect():
-    query_dict = query_row.asDict()
-    query_id = query_dict["id"]
+# Example of running the query
+filters = extract_filters(query)
+tablenames = extract_table_names(query)
 
-    # Extract the queries
-    query1 = query_dict["query1"]
-    query2 = query_dict["query2"]
+for tablename in tablenames:
+    load_table(tablename, filters)
 
-    # Run query1 and get the result count
-    query1_count = run_query(query1, query_id, "query1")
-
-    # Run query2 and get the result count
-    query2_count = run_query(query2, query_id, "query2")
-
-    # Append the result as a tuple (ID, query1, query2, query1Count, query2Count)
-    results.append((query_id, query1, query2, query1_count, query2_count))
-
-# Define the schema explicitly to avoid type inference issues
-from pyspark.sql.types import StructType, StructField, StringType, LongType
-
-schema = StructType([
-    StructField("ID", StringType(), True),
-    StructField("query1", StringType(), True),
-    StructField("query2", StringType(), True),
-    StructField("query1Count", LongType(), True),  # Assuming the count is a long integer
-    StructField("query2Count", LongType(), True)   # Assuming the count is a long integer
-])
-
-# Convert the results into a DataFrame with the defined schema
-result_df = spark.createDataFrame(results, schema)
-
-# Show the results
-result_df.show()
+# Run the query and get the result
+result = run_query(query, query_id="example", query_column="example_query")
+print(f"Query result: {result}")
 
 # Stop the Spark session after all queries are complete
 spark.stop()
