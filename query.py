@@ -1,7 +1,8 @@
-from pyspark.sql import SparkSession
 from concurrent.futures import ThreadPoolExecutor
 import sqlparse
 import re
+from pyspark.sql import SparkSession
+import pandas as pd
 
 # Initialize Spark session
 spark = SparkSession.builder.appName("OptimizedBatchQueries").getOrCreate()
@@ -43,7 +44,7 @@ def extract_filters(query):
 
     return {"business_date": business_date, "business_group_location": business_group_location}
 
-# Function to load a table, register it as a temporary view, and apply partition filters
+# Function to load a table and register it as a temporary view
 def load_table(tablename, filters):
     try:
         business_date = filters["business_date"]
@@ -62,27 +63,35 @@ def load_table(tablename, filters):
     except Exception as e:
         print(f"Error loading table {tablename}: {str(e)}")
 
-# Function to execute a query and return the result count
+# Function to run the queries after tables are loaded
 def run_query(query, query_id, query_column):
     try:
-        tablenames = extract_table_names(query)
-        if not tablenames:
-            raise ValueError(f"No table names found in query: {query}")
-
-        filters = extract_filters(query)
-        for tablename in tablenames:
-            load_table(tablename, filters)
-
+        # Run the query
         result_df = spark.sql(query)
         result_value = result_df.collect()[0][0] if result_df.count() > 0 else 0
-
         return result_value
-
     except Exception as e:
         print(f"Error processing {query_column} for ID {query_id}: {str(e)}")
         return None
 
-# Function to run queries in parallel using ThreadPoolExecutor
+# Function to load tables in parallel
+def load_all_tables(queries_df):
+    # Extract all unique table names from the queries
+    all_tables = set()
+    for _, row in queries_df.iterrows():
+        for query in [row['query1'], row['query2']]:
+            tables = extract_table_names(query)
+            all_tables.update(tables)
+
+    # Extract partition filters (assumed same for all queries here)
+    filters = extract_filters(queries_df.iloc[0]['query1'])  # Using filters from the first query for simplicity
+
+    # Load each table in parallel
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        for tablename in all_tables:
+            executor.submit(load_table, tablename, filters)
+
+# Function to run all queries in parallel after loading tables
 def run_queries_parallel(queries_df, num_threads=4):
     results = []
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
@@ -97,8 +106,6 @@ def run_queries_parallel(queries_df, num_threads=4):
     return results
 
 # Example of a small dataframe for testing
-import pandas as pd
-
 data = {
     'ID': ['1', '2'],
     'query1': [
@@ -113,8 +120,30 @@ data = {
 
 queries_df = pd.DataFrame(data)
 
-# Run the queries in parallel
+# Load all tables first
+load_all_tables(queries_df)
+
+# Run the queries in parallel after tables are loaded
 results = run_queries_parallel(queries_df, num_threads=4)
+
+# Reformat results back into dataframe
+output_data = []
+for idx, row in queries_df.iterrows():
+    query1_count = results[idx * 2]    # First result for this ID
+    query2_count = results[idx * 2 + 1]  # Second result for this ID
+    output_data.append({
+        "ID": row['ID'],
+        "query1": row['query1'],
+        "query2": row['query2'],
+        "query1Count": query1_count,
+        "query2Count": query2_count
+    })
+
+# Create a dataframe for the output
+output_df = pd.DataFrame(output_data)
+
+# Output dataframe example
+print(output_df)
 
 # Stop Spark session after queries are done
 spark.stop()
