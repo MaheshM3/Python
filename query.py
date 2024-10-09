@@ -105,20 +105,9 @@ def run_queries_parallel(queries_df, num_threads=4):
 
     return results
 
-# Example of a small dataframe for testing
-data = {
-    'ID': ['1', '2'],
-    'query1': [
-        "SELECT COUNT(*) FROM t1 WHERE business_date = '2024-01-01' AND business_group_location = 'US'",
-        "SELECT COUNT(*) FROM t2 WHERE business_date = '2024-01-02' AND business_group_location = 'EU'"
-    ],
-    'query2': [
-        "SELECT COUNT(*) FROM t3 WHERE business_date = '2024-01-01' AND business_group_location = 'US'",
-        "SELECT COUNT(*) FROM t4 WHERE business_date = '2024-01-02' AND business_group_location = 'EU'"
-    ]
-}
-
-queries_df = pd.DataFrame(data)
+# Read queries CSV file uploaded in Databricks
+queries_csv_path = "/dbfs/FileStore/tables/queries.csv"  # Path to the CSV file in Databricks workspace
+queries_df = spark.read.csv(queries_csv_path, header=True).toPandas()
 
 # Load all tables first
 load_all_tables(queries_df)
