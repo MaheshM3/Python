@@ -37,14 +37,15 @@ def extract_pyproject_toml(filepath):
         
         # If we found dependencies, process them
         if data:
+            parsed_deps = {}
             if isinstance(data, dict):  # Dictionary-style dependencies
-                return data
-            elif isinstance(data, list):  # List-style dependencies
-                parsed_deps = {}
+                for package, version in data.items():
+                    parsed_deps[package] = version
+            elif isinstance(data, list):  # List-style dependencies with version constraints
                 for dep in data:
                     package, version = parse_dependency(dep)
                     parsed_deps[package] = version
-                return parsed_deps
+            return parsed_deps
 
     return {}
 
@@ -76,13 +77,13 @@ def extract_package_json(filepath):
     return package_data.get('dependencies', {})
 
 def parse_dependency(dep):
-    """Extract package name and version constraint."""
+    """Extract package name and version constraint from a string (e.g., 'package==1.0.0')."""
     match = version_pattern.match(dep)
     if match:
         package = match.group(1)
         version_constraint = match.group(2) or ''
         return package, version_constraint
-    return dep, ''  # If no match, return the dep as it is (could be a special case)
+    return dep, ''  # If no match, return the dep as is (could be a special case)
 
 def get_dependencies_from_repo(repo_name, repo_path):
     dependencies = []
