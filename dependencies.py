@@ -149,12 +149,17 @@ def generate_dependency_table(repos_base_path):
     # Drop duplicates if needed
     df = df.drop_duplicates()
 
+    # Ensure that any "==version" entries are treated as text by Excel
+    df['Version/Constraint'] = df['Version/Constraint'].apply(lambda x: f"'{x}" if x.startswith('==') else x)
+
     # Print the table format (or save it to CSV/Excel)
     print(df.to_string(index=False))
 
-    # Save to CSV and Excel formats, handling empty values
+    # Save to CSV and Excel formats
     df.to_csv('dependency_list.csv', index=False)
-    df.to_excel('dependency_list.xlsx', index=False, engine='openpyxl')  # Ensure the right Excel engine is used
+    
+    # Save to Excel with proper text formatting to avoid issues with "=="
+    df.to_excel('dependency_list.xlsx', index=False, engine='openpyxl', header=True)
 
 # Example usage:
 if __name__ == "__main__":
