@@ -6,8 +6,9 @@ from pathlib import Path
 import pandas as pd
 import re
 
-# Regex pattern to extract package name and version constraint
-version_pattern = re.compile(r'([a-zA-Z0-9_\-]+)([<>=!~]*[0-9.]+)?')
+# Updated regex pattern to extract package name and version constraint
+# Handles versions like 0.4.0b1, 1.0rc1, etc.
+version_pattern = re.compile(r'([a-zA-Z0-9_\-]+)([<>=!~]*[0-9a-zA-Z\-.]+)?')
 
 def extract_requirements_txt(filepath):
     with open(filepath, 'r') as f:
@@ -77,13 +78,13 @@ def extract_package_json(filepath):
     return package_data.get('dependencies', {})
 
 def parse_dependency(dep):
-    """Extract package name and version constraint from a string (e.g., 'package==1.0.0')."""
+    """Extract package name and version constraint from a string (e.g., 'package==1.0.0' or 'package>=1.2.3b1')."""
     match = version_pattern.match(dep)
     if match:
         package = match.group(1)
         version_constraint = match.group(2) or ''
         return package, version_constraint
-    return dep, ''  # If no match, return the dep as is (could be a special case)
+    return dep, ''  # If no match, return the dep as it is (could be a special case)
 
 def get_dependencies_from_repo(repo_name, repo_path):
     dependencies = []
@@ -151,9 +152,9 @@ def generate_dependency_table(repos_base_path):
     # Print the table format (or save it to CSV/Excel)
     print(df.to_string(index=False))
 
-    # Optionally, save to CSV or Excel
+    # Save to CSV and Excel formats, handling empty values
     df.to_csv('dependency_list.csv', index=False)
-    df.to_excel('dependency_list.xlsx', index=False)
+    df.to_excel('dependency_list.xlsx', index=False, engine='openpyxl')  # Ensure the right Excel engine is used
 
 # Example usage:
 if __name__ == "__main__":
