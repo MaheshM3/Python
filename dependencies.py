@@ -6,8 +6,7 @@ from pathlib import Path
 import pandas as pd
 import re
 
-# Updated regex pattern to extract package name and version constraint
-# Handles versions like 0.4.0b1, 1.0rc1, etc.
+# Regex pattern to extract package name and version constraint
 version_pattern = re.compile(r'([a-zA-Z0-9_\-]+)([<>=!~]*[0-9a-zA-Z\-.]+)?')
 
 def extract_requirements_txt(filepath):
@@ -36,7 +35,6 @@ def extract_pyproject_toml(filepath):
                 data = None
                 break
         
-        # If we found dependencies, process them
         if data:
             parsed_deps = {}
             if isinstance(data, dict):  # Dictionary-style dependencies
@@ -149,17 +147,11 @@ def generate_dependency_table(repos_base_path):
     # Drop duplicates if needed
     df = df.drop_duplicates()
 
-    # Ensure that any "==version" entries are treated as text by Excel
-    df['Version/Constraint'] = df['Version/Constraint'].apply(lambda x: f"'{x}" if x.startswith('==') else x)
-
-    # Print the table format (or save it to CSV/Excel)
+    # Print the table format (or save it to CSV)
     print(df.to_string(index=False))
 
-    # Save to CSV and Excel formats
+    # Save to CSV without modifying the values
     df.to_csv('dependency_list.csv', index=False)
-    
-    # Save to Excel with proper text formatting to avoid issues with "=="
-    df.to_excel('dependency_list.xlsx', index=False, engine='openpyxl', header=True)
 
 # Example usage:
 if __name__ == "__main__":
