@@ -16,7 +16,36 @@ def extract_requirements_txt(filepath):
 def extract_pyproject_toml(filepath):
     with open(filepath, 'r') as f:
         pyproject_data = toml.load(f)
-    return pyproject_data.get('tool', {}).get('poetry', {}).get('dependencies', {})
+    
+    # Attempt to find dependencies in various possible locations
+    possible_keys = [
+        'dependencies',  # Non-standard direct dependencies list
+        'tool.poetry.dependencies',  # Poetry standard
+        'tool.pdm.dependencies'  # PDM standard
+    ]
+    
+    for key in possible_keys:
+        keys = key.split('.')
+        data = pyproject_data
+        for subkey in keys:
+            if subkey in data:
+                data = data[subkey]
+            else:
+                data = None
+                break
+        
+        # If we found dependencies, process them
+        if data:
+            if isinstance(data, dict):
+                return data
+            elif isinstance(data, list):
+                parsed_deps = {}
+                for dep in data:
+                    package, version = parse_dependency(dep)
+                    parsed_deps[package] = version
+                return parsed_deps
+
+    return {}
 
 def extract_setup_py(filepath):
     dependencies = []
@@ -111,9 +140,12 @@ def generate_dependency_table(repos_base_path):
     # Convert list of dependencies into a DataFrame for better readability
     df = pd.DataFrame(dependencies, columns=["Repository", "Dependency", "Version/Constraint"])
     
+    # Ensure that all columns are treated as strings before dropping duplicates
+    df = df.astype(str)
+
     # Drop duplicates if needed
     df = df.drop_duplicates()
-    
+
     # Print the table format (or save it to CSV/Excel)
     print(df.to_string(index=False))
 
