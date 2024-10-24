@@ -4,6 +4,10 @@ import json
 import configparser
 from pathlib import Path
 import pandas as pd
+import re
+
+# Regex pattern to extract package name and version constraint
+version_pattern = re.compile(r'([a-zA-Z0-9_\-]+)([<>=!~]*[0-9.]+)?')
 
 def extract_requirements_txt(filepath):
     with open(filepath, 'r') as f:
@@ -41,6 +45,15 @@ def extract_package_json(filepath):
         package_data = json.load(f)
     return package_data.get('dependencies', {})
 
+def parse_dependency(dep):
+    """Extract package name and version constraint."""
+    match = version_pattern.match(dep)
+    if match:
+        package = match.group(1)
+        version_constraint = match.group(2) or ''
+        return package, version_constraint
+    return dep, ''  # If no match, return the dep as it is (could be a special case)
+
 def get_dependencies_from_repo(repo_name, repo_path):
     dependencies = []
     
@@ -48,7 +61,8 @@ def get_dependencies_from_repo(repo_name, repo_path):
     req_file = Path(repo_path) / 'requirements.txt'
     if req_file.exists():
         for dep in extract_requirements_txt(req_file):
-            dependencies.append((repo_name, dep.split('==')[0], dep.split('==')[-1] if '==' in dep else ''))
+            package, version = parse_dependency(dep)
+            dependencies.append((repo_name, package, version))
 
     # Check for pyproject.toml
     toml_file = Path(repo_path) / 'pyproject.toml'
@@ -61,13 +75,15 @@ def get_dependencies_from_repo(repo_name, repo_path):
     setup_file = Path(repo_path) / 'setup.py'
     if setup_file.exists():
         for dep in extract_setup_py(setup_file):
-            dependencies.append((repo_name, dep.split('==')[0], dep.split('==')[-1] if '==' in dep else ''))
+            package, version = parse_dependency(dep)
+            dependencies.append((repo_name, package, version))
     
     # Check for setup.cfg
     cfg_file = Path(repo_path) / 'setup.cfg'
     if cfg_file.exists():
         for dep in extract_setup_cfg(cfg_file):
-            dependencies.append((repo_name, dep.split('==')[0], dep.split('==')[-1] if '==' in dep else ''))
+            package, version = parse_dependency(dep)
+            dependencies.append((repo_name, package, version))
 
     # Check for package.json (for Node.js projects)
     package_json_file = Path(repo_path) / 'package.json'
