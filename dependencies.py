@@ -19,9 +19,10 @@ def extract_pyproject_toml(filepath):
     
     # Attempt to find dependencies in various possible locations
     possible_keys = [
-        'dependencies',  # Non-standard direct dependencies list
-        'tool.poetry.dependencies',  # Poetry standard
-        'tool.pdm.dependencies'  # PDM standard
+        'dependencies',                   # Non-standard direct dependencies list
+        'tool.poetry.dependencies',        # Poetry standard
+        'tool.pdm.dependencies',           # PDM standard
+        'project.dependencies',            # PEP 621 standard under [project]
     ]
     
     for key in possible_keys:
@@ -36,9 +37,9 @@ def extract_pyproject_toml(filepath):
         
         # If we found dependencies, process them
         if data:
-            if isinstance(data, dict):
+            if isinstance(data, dict):  # Dictionary-style dependencies
                 return data
-            elif isinstance(data, list):
+            elif isinstance(data, list):  # List-style dependencies
                 parsed_deps = {}
                 for dep in data:
                     package, version = parse_dependency(dep)
