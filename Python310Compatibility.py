@@ -24,8 +24,10 @@ def check_python_version_compatibility(package_name, target_version="3.10"):
     if requires_python:
         print(f"Package '{package_name}' requires Python versions: {requires_python}")
         
-        # Check if Python 3.10 is supported
-        if f"3.{target_version.split('.')[1]}" in requires_python or ">=3.10" in requires_python:
+        # Update logic to assume compatibility if version requirement is less than the target version
+        if "3." in requires_python and int(requires_python.split(".")[1][0]) <= int(target_version.split(".")[1]):
+            return package_name, requires_python, True
+        elif ">=3.8" in requires_python:
             return package_name, requires_python, True
         else:
             return package_name, requires_python, False
@@ -68,7 +70,7 @@ if __name__ == "__main__":
     
     # Print the results
     for result in results:
-        print(f"Library: {result[0]}, Requires: {result[1]}, Compatibility: {result[2]}")
+        print(f"Library: {result[0]}, Requires: {result[1]}, Python 3.10 Compatibility: {result[2]}")
     
     # Optionally save the results to a CSV file
     save_results_to_csv(results)
