@@ -8,7 +8,7 @@ dbr_version = os.getenv("DATABRICKS_RUNTIME_VERSION", "unknown_version")
 python_version = sys.version.split()[0]  # Get only the version number (e.g., "3.8.10")
 
 libraries_to_check = [
-    "pandas", "numpy", "scipy", "scikit-learn", "matplotlib",
+    "azure-core", "azure-identity","azure-blob-storage","pandas", "numpy", "scipy", "scikit-learn", "matplotlib",
     "urllib3", "psutil", "pyspark"
 ]
 
@@ -29,9 +29,12 @@ def get_library_versions(libraries):
         })
     return data
 
+
 # Generate DataFrame with versions
 library_versions_data = get_library_versions(libraries_to_check)
 library_versions_df = pd.DataFrame(library_versions_data)
+
+
 
 # Display DataFrame
 display(library_versions_df)
