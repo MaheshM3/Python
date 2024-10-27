@@ -1,3 +1,7 @@
+# %sh
+# pip install pyspark
+# # pip uninstall pyspark -y
+
 import importlib.metadata
 import pandas as pd
 import os
