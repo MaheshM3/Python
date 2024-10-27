@@ -7,12 +7,24 @@ import os
 dbr_version = os.getenv("DATABRICKS_RUNTIME_VERSION", "unknown_version")
 
 # Path to your Excel file with the list of libraries (ensure the path is correct for your environment)
-excel_path = "/dbfs/FileStore/path_to_your_excel_file.xlsx"
+# excel_path = "/dbfs/FileStore/path_to_your_excel_file.xlsx"
 
-# Load the library list from Excel
-# Assume the libraries are listed under a column named "Library"
-library_df = pd.read_excel(excel_path, engine="openpyxl")
-libraries_to_check = library_df["Library"].tolist()
+# # Load the library list from Excel
+# # Assume the libraries are listed under a column named "Library"
+# library_df = pd.read_excel(excel_path, engine="openpyxl")
+# libraries_to_check = library_df["Library"].tolist()
+# List of libraries to check versions for
+libraries_to_check = [
+    "pandas",
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "matplotlib",
+    "seaborn",
+    "tensorflow",
+    "pyspark"
+]
+
 
 # Function to get versions using pkg_resources
 def get_library_versions(libraries):
