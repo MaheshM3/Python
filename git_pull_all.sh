@@ -10,7 +10,7 @@ repos=(
 # Base directory where repositories will be stored
 base_dir="path/to/your/repos"
 
-# Create the base directory if it doesn't exist
+# Create base directory if it doesn't exist
 mkdir -p "$base_dir"
 cd "$base_dir" || exit 1
 
@@ -21,14 +21,39 @@ for repo_url in "${repos[@]}"; do
 
     # Check if the repository directory already exists
     if [ -d "$repo_name" ]; then
-        echo "Pulling latest changes in $repo_name..."
+        echo "Checking $repo_name for local changes..."
+
         cd "$repo_name" || continue
-        # Pull the latest changes if it's a Git repository
-        if [ -d ".git" ]; then
+
+        # Option 1: Stash local changes before pulling
+        if [[ $(git status --porcelain) ]]; then
+            echo "Stashing local changes in $repo_name..."
+            git stash --include-untracked
             git pull
+            git stash pop
         else
-            echo "$repo_name exists but is not a Git repository, skipping..."
+            git pull
         fi
+
+        # Option 2: Force pull (discard all local changes)
+        # WARNING: This will remove all local changes!
+        # Uncomment the following lines to enable this option
+        # if [[ $(git status --porcelain) ]]; then
+        #     echo "Discarding local changes in $repo_name..."
+        #     git fetch
+        #     git reset --hard origin/main  # Change `main` to your default branch if different
+        # else
+        #     git pull
+        # fi
+
+        # Option 3: Skip pull if there are local changes
+        # Uncomment the following lines to enable this option
+        # if [[ $(git status --porcelain) ]]; then
+        #     echo "Local changes detected in $repo_name. Skipping pull."
+        # else
+        #     git pull
+        # fi
+
         cd ..
     else
         # Clone the repository if it doesn't exist
