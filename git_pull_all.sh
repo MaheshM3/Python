@@ -25,34 +25,14 @@ for repo_url in "${repos[@]}"; do
 
         cd "$repo_name" || continue
 
-        # Option 1: Stash local changes before pulling
+        # Option 1: Stash local changes before pulling (without popping them afterward)
         if [[ $(git status --porcelain) ]]; then
             echo "Stashing local changes in $repo_name..."
             git stash --include-untracked
-            git pull
-            git stash pop
-        else
-            git pull
         fi
 
-        # Option 2: Force pull (discard all local changes)
-        # WARNING: This will remove all local changes!
-        # Uncomment the following lines to enable this option
-        # if [[ $(git status --porcelain) ]]; then
-        #     echo "Discarding local changes in $repo_name..."
-        #     git fetch
-        #     git reset --hard origin/main  # Change `main` to your default branch if different
-        # else
-        #     git pull
-        # fi
-
-        # Option 3: Skip pull if there are local changes
-        # Uncomment the following lines to enable this option
-        # if [[ $(git status --porcelain) ]]; then
-        #     echo "Local changes detected in $repo_name. Skipping pull."
-        # else
-        #     git pull
-        # fi
+        # Pull the latest changes
+        git pull
 
         cd ..
     else
