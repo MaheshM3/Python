@@ -59,3 +59,12 @@ spark.sql.execution.arrow.maxRecordsPerBatch 5000
 # Adjust Arrow batch size for better memory efficiency during conversion to Pandas
 spark.sql.execution.arrow.maxRecordsPerBatch 5000
 
+# GIT
+Check Current Branch
+	git branch
+Create and Switch to a New Branch
+	git checkout -b new-branch-name
+Push a New Branch to Remote
+	git push -u origin new-branch-name
+Delete a Remote Branch
+	git push origin --delete branch-name
