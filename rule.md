@@ -6,30 +6,28 @@
 
 
    ```Python
-  from pyspark.sql import functions as F
+  import pandas as pd
 
 def create_queries_for_ruleitems_df_cp005(ruleitems_df_cp005):
     """
     Updates 'other_template_query' column in the DataFrame by replacing placeholders
     with specific values based on column values or predefined expressions.
-    
+
     Args:
-        ruleitems_df_cp005: Input PySpark DataFrame with rule items.
-    
+        ruleitems_df_cp005: Input Pandas DataFrame with rule items.
+
     Returns:
-        Updated PySpark DataFrame.
+        Updated Pandas DataFrame.
     """
+
+    # Helper function to replace placeholder if the column `col_name` is not null.
     def replace_placeholder(df, col_name, placeholder):
-        """
-        Helper function to replace placeholder in 'other_template_query'
-        if the column `col_name` is not null.
-        """
-        return df.withColumn(
-            'other_template_query',
-            F.when(F.col(col_name).isNotNull(),
-                   F.expr(f"replace(other_template_query, '<{placeholder}>', {col_name})"))
-            .otherwise(F.col('other_template_query'))
-        )
+        for index, row in df.iterrows():
+            if pd.notnull(row[col_name]):
+                df.at[index, 'other_template_query'] = row['other_template_query'].replace(
+                    f"<{placeholder}>", str(row[col_name])
+                )
+        return df
 
     # Define a dictionary for column-to-placeholder mapping
     column_replacements = {
@@ -60,12 +58,24 @@ def create_queries_for_ruleitems_df_cp005(ruleitems_df_cp005):
 
     # Apply static replacements
     for placeholder, replacement in static_replacements.items():
-        ruleitems_df_cp005 = ruleitems_df_cp005.withColumn(
-            'other_template_query',
-            F.expr(f"replace(other_template_query, '{placeholder}', '{replacement}')")
+        ruleitems_df_cp005['other_template_query'] = ruleitems_df_cp005['other_template_query'].str.replace(
+            placeholder, replacement, regex=False
         )
 
     return ruleitems_df_cp005
+
+# Example usage with a sample DataFrame
+data = {
+    'other_template_query': ['<JOIN_CONDITION> is applied', '<RULE_EXPRESSION> check', '<BUSINESS_DATE_FILTER>'],
+    'JOIN_CONDITION': ['join_condition_value', None, None],
+    'RULE_EXPRESSION': [None, 'rule_expression_value', None],
+}
+ruleitems_df_cp005 = pd.DataFrame(data)
+
+# Call the function
+updated_df = create_queries_for_ruleitems_df_cp005(ruleitems_df_cp005)
+print(updated_df)
+
 
 ```
 #Refactored code
