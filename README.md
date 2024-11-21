@@ -52,11 +52,12 @@
 	spark.sql.execution.arrow.maxRecordsPerBatch 5000
 
 ## GIT
-### Check Current Branch
-	git branch
-### Create and Switch to a New Branch
-	git checkout -b new-branch-name
-### Push a New Branch to Remote
-	git push -u origin new-branch-name
-### Delete a Remote Branch
-	git push origin --delete branch-name
+	Ensure you are on the feature/dev branch locally:
+	git fetch origin                    # Fetch the latest changes from the remote
+	git checkout -b feature/dev-merged  # Create a new branch
+	git merge origin/feature/dev        # Merge the latest remote changes into the new branch
+	# Resolve conflicts if any
+	git add .                           # Stage resolved files
+	git commit -m "Resolve conflicts and merge changes"  # Commit the merge
+	git push origin feature/dev-merged  # Push the new branch to the remote
+
