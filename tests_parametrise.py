@@ -48,40 +48,40 @@ def load_data(request):
 @pytest.mark.parametrize("load_data", test_params, indirect=True)
 def test_case1(region, date, type_, load_data):
     """
-    Test case 1: Validate specific columns in the DataFrame.
+    Test case 1: Validate specific columns for type='CP'.
     """
     if type_ != "CP":
         pytest.skip("Test case 1 is only applicable for type='CP'")
     
     input_df, expected_df = load_data
 
-    # Example: Validate column 'A'
-    pd.testing.assert_series_equal(input_df["A"], expected_df["A"])
+    # Validate columns 'Id' and 'A'
+    pd.testing.assert_frame_equal(input_df[["Id", "A"]], expected_df[["Id", "A"]])
 
 @pytest.mark.parametrize("region, date, type_", test_params, ids=test_ids)
 @pytest.mark.parametrize("load_data", test_params, indirect=True)
 def test_case2(region, date, type_, load_data):
     """
-    Test case 2: Validate another set of columns.
+    Test case 2: Validate a different set of columns for type='FULL'.
     """
     if type_ != "FULL":
         pytest.skip("Test case 2 is only applicable for type='FULL'")
     
     input_df, expected_df = load_data
 
-    # Example: Validate column 'B'
-    pd.testing.assert_series_equal(input_df["B"], expected_df["B"])
+    # Validate columns 'B' and 'C'
+    pd.testing.assert_frame_equal(input_df[["B", "C"]], expected_df[["B", "C"]])
 
 @pytest.mark.parametrize("region, date, type_", test_params, ids=test_ids)
 @pytest.mark.parametrize("load_data", test_params, indirect=True)
 def test_case3(region, date, type_, load_data):
     """
-    Test case 3: Validate the entire DataFrame.
+    Test case 3: Validate the entire DataFrame for both type='CP' and type='FULL'.
     """
     if type_ not in ["CP", "FULL"]:
         pytest.skip("Test case 3 is only applicable for type='CP' or 'FULL'")
     
     input_df, expected_df = load_data
 
-    # Example: Validate the entire DataFrame
+    # Validate the entire DataFrame
     pd.testing.assert_frame_equal(input_df, expected_df)
