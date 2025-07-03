@@ -1,0 +1,60 @@
+Overview:
+Databricks Connect is a client library that enables developers to connect their favorite IDEs (like Visual Studio Code, PyCharm, or IntelliJ IDEA), notebook servers, or custom applications to Databricks clusters, allowing them to run Apache Spark code remotely without needing to manage local Spark sessions.
+Databricks Connect enables seamless integration with local development environments, enhances productivity, and supports various data processing and analytics use cases.
+Databricks Connect is a client library that allows developers to write Spark code in their preferred IDE or application and execute it on a remote Databricks cluster.
+Foundation on Spark Connect (open-source, decoupled client-server architecture) for remote connectivity using the DataFrame API.
+Key benefits: Flexibility to use local IDEs, debug code efficiently, integrate with CI/CD pipelines, and build interactive data applications.
+
+Why Databricks Connect?:
+Eliminates the need to run Spark locally, reducing resource overhead.
+Enables software engineering best practices (version control, unit testing, debugging) in a familiar IDE.
+Supports Python, R, and Scala
+
+Prerequisites:
+
+A Databricks workspace with Unity Catalog enabled.
+A Databricks cluster running Databricks Runtime 13.3 LTS or above.
+Local machine with Python 3.8+, an IDE (e.g., PyCharm or VS Code), and the Databricks CLI installed.
+Basic familiarity with Apache Spark and Python.
+
+Use case:
+Scenario: Read the sample CSV file from DBFS, filter rows, and display results using Databricks Connect in VS Code.
+
+pip install databricks-connect>=13.0
+databricks-connect test
+
+use OAuth by setting up a .databrickscfg file in your home directory:
+[DEMO_PROFILE]
+host = https://dbc-a1b2345c-d6e7.cloud.databricks.com
+token = <your-personal-access-token>
+
+
+from databricks.connect import DatabricksSession
+
+# Initialize DatabricksSession
+spark = DatabricksSession.builder.profile("DEMO_PROFILE").getOrCreate()
+
+# Read sample CSV from DBFS
+df = spark.read.csv("dbfs:/FileStore/sample_data.csv", header=True, inferSchema=True)
+
+# Perform a simple transformation
+filtered_df = df.filter(df.age > 25)
+filtered_df.show()
+
+# Write output to DBFS
+filtered_df.write.csv("dbfs:/FileStore/output/filtered_data.csv", header=True, mode="overwrite")
+
+
+Key Points:
+The code runs locally in VS Code but executes on the remote Databricks cluster.
+VS Code features (code completion, debugging) enhance productivity.
+
+
+Feature,Local SparkSession,DatabricksSession (Databricks Connect)
+Setup,"Requires local Spark, Java, PySpark","Requires only Databricks Connect, CLI"
+Compute,Local machine (limited by RAM/CPU),Remote Databricks cluster (scalable)
+APIs Supported,"DataFrame, RDD, SQL, etc.",DataFrame only
+Databricks Features,"None (e.g., no Delta Lake)","Full access (Delta Lake, Unity Catalog)"
+Use Case,"Local testing, small datasets","Large-scale processing, cloud integration"
+Debugging,Supported in VS Code,Supported in VS Code
+Resource Requirements,High (local Spark cluster),Low (remote compute)
