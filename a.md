@@ -1,3 +1,12 @@
+
+**Databricks**: Databricks is a unified data analytics platform built on Apache Spark, designed to simplify big data processing, machine learning, and AI. It provides a collaborative environment for data engineers, data scientists, and analysts to work together on large-scale data workloads, offering tools for data processing, machine learning model development, and real-time analytics.
+
+**Azure Databricks**: Azure Databricks is a Microsoft Azure-integrated version of Databricks, optimized for the Azure cloud. It combines the capabilities of Databricks with Azure’s infrastructure, offering seamless integration with Azure services like Azure Data Lake, Azure Machine Learning, and Power BI. It provides a managed environment for running Databricks workloads with enhanced security, scalability, and Azure-specific features.
+
+In short, Databricks is the core platform, while Azure Databricks is its cloud-optimized version tailored for the Azure ecosystem.
+
+
+
 **Databricks Connect vs. Running PySpark Locally: A Comparison**
 
 **Databricks Connect** and **running PySpark locally** are two approaches to developing and executing Spark code using Python (PySpark). They serve different purposes depending on the development environment, scalability needs, and integration requirements. Below is a comparison of the two approaches, followed by a simple example to illustrate their usage.
