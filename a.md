@@ -1,5 +1,6 @@
 Photon Acceleration: Databricks' vectorized C++ engine accelerates SQL and DataFrame workloads with optimized processing, outperforming vanilla Spark, but isn't available on AKS without custom implementation.
 Adaptive Query Execution (AQE): Dynamically optimizes Spark query plans at runtime to handle data skew and inefficiencies, enabled by default in Databricks and available in AKS with manual configuration.
+Spot instances in Databricks are cost-effective, interruptible cloud compute resources used for worker nodes, leveraging unused capacity at up to 90% discount, ideal for non-critical, fault-tolerant workloads like batch processing.
 
 ### Overview
 Running Spark code involves processing large-scale data workloads. Databricks is a managed platform built on Apache Spark, offering an optimized, collaborative environment. In contrast, Azure Kubernetes Service (AKS) allows you to deploy and manage Spark yourself on Kubernetes clusters, providing more control but requiring hands-on configuration. Below is a comparison across key aspects, based on available analyses and user experiences.
