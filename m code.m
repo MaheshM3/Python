@@ -10,3 +10,6 @@
     }
   in
     Text.Combine(List.RemoveNulls(parts), " ")
+
+
+=TRIM(SUBSTITUTE(SUBSTITUTE(TEXT(A1/86400,"[h]\h m\m s\s"),"0h ",""),"0m ",""))
