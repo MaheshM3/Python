@@ -1,26 +1,32 @@
-WITH time_counts AS (
+WITH cleaned AS (
     SELECT 
         location,
-        start_time::time AS start_time_only,
-        COUNT(*) AS frequency
+        -- Round to nearest 10 minutes (change to '5 minutes' if you want tighter)
+        DATE_TRUNC('hour', start_time) 
+        + INTERVAL '10 min' * ROUND(EXTRACT(MINUTE FROM start_time) / 10.0) AS typical_time
     FROM jobs
-    WHERE start_time IS NOT NULL
-      AND start_time >= CURRENT_DATE - INTERVAL '180 days'
-    GROUP BY location, start_time::time
+    WHERE start_time >= CURRENT_DATE - INTERVAL '180 days'
+      AND start_time IS NOT NULL
 ),
-usual_times AS (
+counts AS (
     SELECT 
         location,
-        start_time_only AS usual_start_time,
+        typical_time::time AS usual_start_time,
+        COUNT(*) AS frequency
+    FROM cleaned
+    GROUP BY location, typical_time
+),
+ranked AS (
+    SELECT 
+        location,
+        usual_start_time,
         frequency,
-        ROW_NUMBER() OVER (PARTITION BY location ORDER BY frequency DESC, start_time_only) AS rn
-    FROM time_counts
+        ROW_NUMBER() OVER (PARTITION BY location ORDER BY frequency DESC, usual_start_time) AS rn
+    FROM counts
 )
 SELECT 
     location,
     usual_start_time
-FROM usual_times
+FROM ranked
 WHERE rn = 1
-ORDER BY 
-    usual_start_time ASC,      -- primary: real chronological order
-    location ASC;              -- secondary: only as tie-breaker (alphabetical)
+ORDER BY usual_start_time;   -- perfect chronological order
