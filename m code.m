@@ -13,3 +13,7 @@
 
 
 =TRIM(SUBSTITUTE(SUBSTITUTE(TEXT(A1/86400,"[h]\h m\m s\s"),"0h ",""),"0m ",""))
+
+=TRIM(IF(QUOTIENT(B8,3600)>0, QUOTIENT(B8,3600)&"h ","") &
+      IF(QUOTIENT(MOD(B8,3600),60)>0, QUOTIENT(MOD(B8,3600),60)&"m ","") &
+      MOD(B8,60)&"s")
