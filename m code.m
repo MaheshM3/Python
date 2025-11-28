@@ -17,3 +17,8 @@
 =TRIM(IF(QUOTIENT(B8,3600)>0, QUOTIENT(B8,3600)&"h ","") &
       IF(QUOTIENT(MOD(B8,3600),60)>0, QUOTIENT(MOD(B8,3600),60)&"m ","") &
       MOD(B8,60)&"s")
+=TRIM(
+   IF(INT(B8/3600), INT(B8/3600)&"h ","") &
+   IF(INT(MOD(B8,3600)/60), INT(MOD(B8,3600)/60)&"m ","") &
+   ROUND(MOD(B8,60),0)&"s"
+)
