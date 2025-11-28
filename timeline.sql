@@ -1,32 +1,52 @@
 WITH cleaned AS (
     SELECT 
         location,
-        -- Round to nearest 10 minutes (change to '5 minutes' if you want tighter)
+        -- Rounded start time (nearest 10 min) → most common "usual" start
         DATE_TRUNC('hour', start_time) 
-        + INTERVAL '10 min' * ROUND(EXTRACT(MINUTE FROM start_time) / 10.0) AS typical_time
+        + INTERVAL '10 min' * ROUND(EXTRACT(MINUTE FROM start_time) / 10.0) AS start_rounded,
+        
+        -- Duration as interval
+        (end_time - start_time) AS duration_interval
+    FROM jobs
+    WHERE start_time IS NOT NULL
+      AND end_time IS NOT NULL
+      AND end_time > start_time
+      AND start_time >= CURRENT_DATE - INTERVAL '180 days'
+),
+-- Most common rounded start time per location
+usual_start AS (
+    SELECT 
+        location,
+        start_rounded::time AS usual_start_time,
+        ROW_NUMBER() OVER (PARTITION BY location ORDER BY COUNT(*) DESC) AS rn
+    FROM cleaned
+    GROUP BY location, start_rounded
+),
+-- Median duration per location (the real "usual" runtime)
+usual_duration AS (
+    SELECT 
+        location,
+        PERCENTILE_CONT(0.5) WITHIN GROUP (
+            ORDER BY end_time - start_time
+        ) AS median_duration_interval
     FROM jobs
     WHERE start_time >= CURRENT_DATE - INTERVAL '180 days'
-      AND start_time IS NOT NULL
-),
-counts AS (
-    SELECT 
-        location,
-        typical_time::time AS usual_start_time,
-        COUNT(*) AS frequency
-    FROM cleaned
-    GROUP BY location, typical_time
-),
-ranked AS (
-    SELECT 
-        location,
-        usual_start_time,
-        frequency,
-        ROW_NUMBER() OVER (PARTITION BY location ORDER BY frequency DESC, usual_start_time) AS rn
-    FROM counts
+      AND end_time IS NOT NULL
+      AND end_time > start_time
+    GROUP BY location
 )
+-- Final result with duration in "dd hh mm ss" format
 SELECT 
-    location,
-    usual_start_time
-FROM ranked
-WHERE rn = 1
-ORDER BY usual_start_time;   -- perfect chronological order
+    us.location,
+    us.usual_start_time,
+    -- Beautiful dd hh mm ss format (only shows units that are >0)
+    TRIM(
+        COALESCE(EXTRACT(DAY FROM ud.median_duration_interval)-1 || 'd ', '')
+        || COALESCE(EXTRACT(HOUR FROM ud.median_duration_interval) || 'h ', '')
+        || COALESCE(EXTRACT(MINUTE FROM ud.median_duration_interval) || 'm ', '')
+        || EXTRACT(SECOND FROM ud.median_duration_interval) || 's'
+    ) AS usual_duration
+FROM usual_start us
+JOIN usual_duration ud ON us.location = ud.location
+WHERE us.rn = 1
+ORDER BY us.usual_start_time ASC;
