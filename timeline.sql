@@ -1,6 +1,42 @@
 WITH cleaned AS (
     SELECT 
         location,
+        DATE_TRUNC('hour', start_time) 
+        + INTERVAL '10 min' * ROUND(EXTRACT(MINUTE FROM start_time) / 10.0) AS start_rounded,
+        (end_time - start_time) AS duration_interval
+    FROM jobs
+    WHERE start_time >= CURRENT_DATE - INTERVAL '180 days'
+      AND end_time IS NOT NULL AND end_time > start_time
+),
+usual_start AS (
+    SELECT location, 
+           start_rounded::time AS usual_start_time,
+           ROW_NUMBER() OVER (PARTITION BY location ORDER BY COUNT(*) DESC) AS rn
+    FROM cleaned
+    GROUP BY location, start_rounded
+),
+usual_duration AS (
+    SELECT location,
+           PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY end_time - start_time) AS median_duration
+    FROM jobs
+    WHERE start_time >= CURRENT_DATE - INTERVAL '180 days'
+      AND end_time IS NOT NULL AND end_time > start_time
+    GROUP BY location
+)
+SELECT 
+    us.location,
+    us.usual_start_time AS start_time,                     -- e.g. 06:10:00
+    (us.usual_start_time + ud.median_duration)::time AS end_time,  -- calculated end
+    ud.median_duration AS duration_interval
+FROM usual_start us
+JOIN usual_duration ud ON us.location = ud.location
+WHERE us.rn = 1
+ORDER BY start_time;
+=================================================================================================================
+
+WITH cleaned AS (
+    SELECT 
+        location,
         -- Rounded start time (nearest 10 min) → most common "usual" start
         DATE_TRUNC('hour', start_time) 
         + INTERVAL '10 min' * ROUND(EXTRACT(MINUTE FROM start_time) / 10.0) AS start_rounded,
