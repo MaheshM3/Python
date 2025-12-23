@@ -21,3 +21,9 @@ for f in files:
 # Create and display sorted table
 df = spark.createDataFrame(rows, ["Name", "Path", "Size (bytes)", "Modified"])
 display(df.orderBy("Modified", ascending=False))
+
+
+display(spark.createDataFrame([
+    (f.name, datetime.fromtimestamp(f.modificationTime / 1000).strftime("%Y-%m-%d %H:%M:%S"))
+    for f in dbutils.fs.ls("dbfs:/cluster-logs/<your-cluster-id>/driver/")
+], ["Name", "Modified"]).orderBy("Modified", ascending=False))
