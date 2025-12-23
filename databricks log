@@ -3,27 +3,37 @@ from datetime import datetime
 # Your starting path (e.g., driver logs for a cluster)
 path = "dbfs:/cluster-logs/<your-cluster-id>/driver/"  
 
-# Recursively find all files
-files = dbutils.fs.ls(path, recurse=True)
+# Recursive function to get all files (skips directories)
+def recursive_ls(dir_path, visited=None):
+    if visited is None:
+        visited = set()
+    if dir_path in visited:
+        return []  # Avoid cycle
+    visited.add(dir_path)
+    
+    items = dbutils.fs.ls(dir_path)
+    files = []
+    for item in items:
+        if item.name.endswith('/'):  # Is directory
+            files.extend(recursive_ls(item.path, visited))
+        else:
+            files.append(item)
+    return files
 
-# Filter only files (exclude directories) and build rows
+# Get all files recursively
+files = recursive_ls(path)
+
+# Build rows with readable dates
 rows = []
 for f in files:
-    if not f.isDir:  # Skip directories
-        dt = datetime.fromtimestamp(f.modificationTime / 1000)
-        rows.append((
-            f.name,
-            f.path,
-            f.size,
-            dt.strftime("%Y-%m-%d %H:%M:%S")
-        ))
+    dt = datetime.fromtimestamp(f.modificationTime / 1000)
+    rows.append((
+        f.name,
+        f.path,
+        f.size,
+        dt.strftime("%Y-%m-%d %H:%M:%S")
+    ))
 
-# Create and display sorted table
+# Create and display sorted table (newest first)
 df = spark.createDataFrame(rows, ["Name", "Path", "Size (bytes)", "Modified"])
 display(df.orderBy("Modified", ascending=False))
-
-
-display(spark.createDataFrame([
-    (f.name, datetime.fromtimestamp(f.modificationTime / 1000).strftime("%Y-%m-%d %H:%M:%S"))
-    for f in dbutils.fs.ls("dbfs:/cluster-logs/<your-cluster-id>/driver/")
-], ["Name", "Modified"]).orderBy("Modified", ascending=False))
