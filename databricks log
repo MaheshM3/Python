@@ -1,0 +1,23 @@
+from datetime import datetime
+
+# Your starting path (e.g., driver logs for a cluster)
+path = "dbfs:/cluster-logs/<your-cluster-id>/driver/"  
+
+# Recursively find all files
+files = dbutils.fs.ls(path, recurse=True)
+
+# Filter only files (exclude directories) and build rows
+rows = []
+for f in files:
+    if not f.isDir:  # Skip directories
+        dt = datetime.fromtimestamp(f.modificationTime / 1000)
+        rows.append((
+            f.name,
+            f.path,
+            f.size,
+            dt.strftime("%Y-%m-%d %H:%M:%S")
+        ))
+
+# Create and display sorted table
+df = spark.createDataFrame(rows, ["Name", "Path", "Size (bytes)", "Modified"])
+display(df.orderBy("Modified", ascending=False))
